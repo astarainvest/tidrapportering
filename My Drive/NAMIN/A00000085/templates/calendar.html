@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+
+{% block title %}Tidrapportering - Kalender{% endblock %}
+
+{% block head %}
+<style>
+.calendar-container {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 8px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background-color: #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.calendar-day-header {
+    background-color: #f8f9fa;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    color: #495057;
+}
+
+.calendar-day {
+    background-color: white;
+    min-height: 120px;
+    padding: 5px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.calendar-day:hover {
+    background-color: #f8f9fa;
+}
+
+.calendar-day.other-month {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.calendar-day.today {
+    background-color: #e3f2fd;
+    border: 2px solid #2196f3;
+}
+
+.day-number {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.day-entries {
+    font-size: 0.8rem;
+}
+
+.time-entry {
+    background-color: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin: 1px 0;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.time-entry:hover {
+    background-color: #d0e7ff;
+}
+
+.total-hours {
+    position: absolute;
+    bottom: 2px;
+    right: 5px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.btn-nav {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+}
+
+.btn-nav:hover {
+    background: rgba(255,255,255,0.3);
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calendar-container">
+    <!-- Kalender header -->
+    <div class="calendar-header">
+        <button class="btn btn-nav" onclick="changeMonth(-1)">
+            <i class="fas fa-chevron-left"></i> Förra
+        </button>
+        
+        <h3 class="mb-0">{{ month_name }} {{ year }}</h3>
+        
+        <button class="btn btn-nav" onclick="changeMonth(1)">
+            Nästa <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <!-- Kalender grid -->
+    <div class="calendar-grid">
+        <!-- Veckodagar header -->
+        <div class="calendar-day-header">Mån</div>
+        <div class="calendar-day-header">Tis</div>
+        <div class="calendar-day-header">Ons</div>
+        <div class="calendar-day-header">Tor</div>
+        <div class="calendar-day-header">Fre</div>
+        <div class="calendar-day-header">Lör</div>
+        <div class="calendar-day-header">Sön</div>
+
+        <!-- Kalenderdagar -->
+        {% for week in month_days %}
+            {% for day in week %}
+                {% if day == 0 %}
+                    <div class="calendar-day other-month"></div>
+                {% else %}
+                    {% set day_date = "%04d-%02d-%02d"|format(year, month, day) %}
+                    {% set today_date = "%04d-%02d-%02d"|format(2025, 11, 3) %}
+                    {% set is_today = day_date == today_date %}
+                    
+                    <div class="calendar-day {% if is_today %}today{% endif %}" 
+                         data-date="{{ day_date }}" 
+                         onclick="openDayModal('{{ day_date }}')">
+                        
+                        <div class="day-number">{{ day }}</div>
+                        
+                        <div class="day-entries">
+                            {% if entries_by_date.get(day_date) %}
+                                {% set total_hours = 0 %}
+                                {% for entry in entries_by_date[day_date] %}
+                                    {% set total_hours = total_hours + entry.hours %}
+                                    <div class="time-entry" title="{{ entry.client.name }} - {{ entry.description }}">
+                                        {{ entry.client.name }}: {{ "%.1f"|format(entry.hours) }}h
+                                    </div>
+                                {% endfor %}
+                                <div class="total-hours">{{ "%.1f"|format(total_hours) }}h</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <!-- Månadsstatistik -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">
+                        {% set month_total = 0 %}
+                        {% for entries in entries_by_date.values() %}
+                            {% for entry in entries %}
+                                {% set month_total = month_total + entry.hours %}
+                            {% endfor %}
+                        {% endfor %}
+                        {{ "%.1f"|format(month_total) }} tim
+                    </h5>
+                    <p class="card-text">Totalt denna månad</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">{{ entries_by_date|length }} dagar</h5>
+                    <p class="card-text">Dagar med tidrapporter</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-info">
+                        {% if entries_by_date|length > 0 %}
+                            {{ "%.1f"|format(month_total / entries_by_date|length) }} tim
+                        {% else %}
+                            0 tim
+                        {% endif %}
+                    </h5>
+                    <p class="card-text">Snitt per dag</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal för dagregistrering -->
+<div class="modal fade" id="dayModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dayModalTitle">Tidrapport för dag</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="dayModalContent">
+                    <!-- Innehåll laddas dynamiskt -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentDate = '';
+let clients = {{ clients|tojson }};
+let projects = {{ projects|tojson }};
+
+function changeMonth(direction) {
+    const currentYear = {{ year }};
+    const currentMonth = {{ month }};
+    
+    let newYear = currentYear;
+    let newMonth = currentMonth + direction;
+    
+    if (newMonth > 12) {
+        newMonth = 1;
+        newYear++;
+    } else if (newMonth < 1) {
+        newMonth = 12;
+        newYear--;
+    }
+    
+    window.location.href = `?year=${newYear}&month=${newMonth}`;
+}
+
+function openDayModal(date) {
+    currentDate = date;
+    const dateObj = new Date(date);
+    const formattedDate = dateObj.toLocaleDateString('sv-SE', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    document.getElementById('dayModalTitle').textContent = `Tidrapport för ${formattedDate}`;
+    
+    loadDayEntries(date);
+    new bootstrap.Modal(document.getElementById('dayModal')).show();
+}
+
+function loadDayEntries(date) {
+    const entries = getEntriesForDate(date);
+    
+    let html = `
+        <div class="mb-3">
+            <button class="btn btn-primary" onclick="showAddEntryForm()">
+                <i class="fas fa-plus me-2"></i>Lägg till tidrapport
+            </button>
+        </div>
+        
+        <div id="addEntryForm" style="display: none;" class="card mb-3">
+            <div class="card-body">
+                <h6>Ny tidrapport</h6>
+                <form id="entryForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Klient *</label>
+                                <select class="form-select" id="clientSelect" required onchange="updateProjects()">
+                                    <option value="">Välj klient...</option>
+                                    ${clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Projekt</label>
+                                <select class="form-select" id="projectSelect">
+                                    <option value="">Välj projekt...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Timmar *</label>
+                                <input type="number" class="form-control" id="hoursInput" step="0.25" min="0.25" max="24" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Beskrivning</label>
+                                <input type="text" class="form-control" id="descriptionInput" placeholder="Vad arbetade du med? (valfritt)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">Spara</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideAddEntryForm()">Avbryt</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div id="existingEntries">
+            ${renderExistingEntries(entries)}
+        </div>
+    `;
+    
+    document.getElementById('dayModalContent').innerHTML = html;
+    
+    // Bind form submit
+    document.getElementById('entryForm').addEventListener('submit', saveEntry);
+}
+
+function getEntriesForDate(date) {
+    const entriesData = {{ entries_by_date|tojson }};
+    return entriesData[date] || [];
+}
+
+function renderExistingEntries(entries) {
+    if (entries.length === 0) {
+        return '<p class="text-muted">Inga tidrapporter för denna dag.</p>';
+    }
+    
+    let html = '<h6>Befintliga tidrapporter:</h6>';
+    let totalHours = 0;
+    
+    entries.forEach(entry => {
+        totalHours += entry.hours;
+        const projectName = entry.project ? entry.project.name : 'Ingen projekt';
+        
+        html += `
+            <div class="card mb-2">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${entry.client.name}</strong> - ${projectName}
+                            <br><small class="text-muted">${entry.description}</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary">${entry.hours}h</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteEntry(${entry.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `<div class="alert alert-info mt-2">Totalt: <strong>${totalHours.toFixed(1)} timmar</strong></div>`;
+    
+    return html;
+}
+
+function showAddEntryForm() {
+    document.getElementById('addEntryForm').style.display = 'block';
+}
+
+function hideAddEntryForm() {
+    document.getElementById('addEntryForm').style.display = 'none';
+    document.getElementById('entryForm').reset();
+}
+
+function updateProjects() {
+    const clientId = document.getElementById('clientSelect').value;
+    const projectSelect = document.getElementById('projectSelect');
+    
+    projectSelect.innerHTML = '<option value="">Välj projekt...</option>';
+    
+    if (clientId) {
+        const clientProjects = projects.filter(p => p.client_id == clientId);
+        clientProjects.forEach(project => {
+            projectSelect.innerHTML += `<option value="${project.id}">${project.name}</option>`;
+        });
+    }
+}
+
+function saveEntry(e) {
+    e.preventDefault();
+    
+    const data = {
+        date: currentDate,
+        client_id: document.getElementById('clientSelect').value,
+        project_id: document.getElementById('projectSelect').value || null,
+        hours: parseFloat(document.getElementById('hoursInput').value),
+        description: document.getElementById('descriptionInput').value.trim()
+    };
+    
+    if (!data.client_id || !data.hours) {
+        alert('Vänligen fyll i klient och timmar.');
+        return;
+    }
+    
+    fetch('/api/save_time_entry', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            hideAddEntryForm();
+            // Reload page to update calendar
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(result.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Ett fel uppstod: ' + error, 'danger');
+    });
+}
+
+function deleteEntry(entryId) {
+    if (!confirm('Är du säker på att du vill ta bort denna tidrapport?')) {
+        return;
+    }
+    
+    fetch('/api/delete_time_entry', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ entry_id: entryId })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            // Reload page to update calendar
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(result.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Ett fel uppstod: ' + error, 'danger');
+    });
+}
+
+// Lägg till dagens datum automatiskt
+document.addEventListener('DOMContentLoaded', function() {
+    // Highlighta dagens datum
+    const today = new Date().toISOString().split('T')[0];
+    const todayElement = document.querySelector(`[data-date="${today}"]`);
+    if (todayElement) {
+        todayElement.classList.add('today');
+    }
+});
+</script>
+{% endblock %}

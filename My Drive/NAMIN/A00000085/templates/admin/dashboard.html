@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Tidrapportering{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Admin Dashboard</h2>
+    <div class="btn-group">
+        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-primary">Användare</a>
+        <a href="{{ url_for('admin_clients') }}" class="btn btn-outline-primary">Klienter</a>
+    </div>
+</div>
+
+<!-- Statistik översikt -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ users_count }}</h4>
+                        <small>Användare</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-building fa-2x"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ clients_count }}</h4>
+                        <small>Klienter</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-project-diagram fa-2x"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ projects_count }}</h4>
+                        <small>Projekt</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ "%.0f"|format(total_hours) }}</h4>
+                        <small>Totala timmar</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Snabbåtgärder -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>Lägg till
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="showAddClientModal()">
+                        <i class="fas fa-building me-2"></i>Ny klient
+                    </button>
+                    <button class="btn btn-success" onclick="showAddProjectModal()">
+                        <i class="fas fa-project-diagram me-2"></i>Nytt projekt
+                    </button>
+                    <a href="{{ url_for('register') }}" class="btn btn-info">
+                        <i class="fas fa-user-plus me-2"></i>Ny användare
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Systemöversikt
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        Aktiva användare
+                        <span class="badge bg-primary">{{ users_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        Aktiva klienter
+                        <span class="badge bg-success">{{ clients_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        Systemstatus
+                        <span class="badge bg-success">Online</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal för ny klient -->
+<div class="modal fade" id="addClientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lägg till ny klient</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addClientForm">
+                    <div class="mb-3">
+                        <label for="clientName" class="form-label">Klientnamn</label>
+                        <input type="text" class="form-control" id="clientName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="clientDescription" class="form-label">Beskrivning</label>
+                        <textarea class="form-control" id="clientDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
+                <button type="button" class="btn btn-primary" onclick="addClient()">Spara</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal för nytt projekt -->
+<div class="modal fade" id="addProjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lägg till nytt projekt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addProjectForm">
+                    <div class="mb-3">
+                        <label for="projectClient" class="form-label">Klient</label>
+                        <select class="form-select" id="projectClient" required>
+                            <option value="">Välj klient...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectName" class="form-label">Projektnamn</label>
+                        <input type="text" class="form-control" id="projectName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectDescription" class="form-label">Beskrivning</label>
+                        <textarea class="form-control" id="projectDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectRate" class="form-label">Timtaxa (kr)</label>
+                        <input type="number" class="form-control" id="projectRate" step="0.01">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
+                <button type="button" class="btn btn-primary" onclick="addProject()">Spara</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showAddClientModal() {
+    new bootstrap.Modal(document.getElementById('addClientModal')).show();
+}
+
+function showAddProjectModal() {
+    // Ladda klienter i dropdown
+    fetch('/api/clients')
+        .then(response => response.json())
+        .then(clients => {
+            const select = document.getElementById('projectClient');
+            select.innerHTML = '<option value="">Välj klient...</option>';
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.name;
+                select.appendChild(option);
+            });
+        });
+    
+    new bootstrap.Modal(document.getElementById('addProjectModal')).show();
+}
+
+function addClient() {
+    const name = document.getElementById('clientName').value;
+    const description = document.getElementById('clientDescription').value;
+    
+    if (!name) {
+        alert('Klientnamn är obligatoriskt');
+        return;
+    }
+    
+    // Implementera API-anrop för att lägga till klient
+    alert('Klientfunktionalitet kommer snart!');
+}
+
+function addProject() {
+    const clientId = document.getElementById('projectClient').value;
+    const name = document.getElementById('projectName').value;
+    const description = document.getElementById('projectDescription').value;
+    const rate = document.getElementById('projectRate').value;
+    
+    if (!clientId || !name) {
+        alert('Klient och projektnamn är obligatoriska');
+        return;
+    }
+    
+    // Implementera API-anrop för att lägga till projekt
+    alert('Projektfunktionalitet kommer snart!');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Hantera användare - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Hantera användare</h2>
+    <div>
+        <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left me-1"></i>Tillbaka
+        </a>
+        <a href="{{ url_for('register') }}" class="btn btn-primary">
+            <i class="fas fa-user-plus me-2"></i>Lägg till användare
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-users me-2"></i>Alla användare
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if users %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Namn</th>
+                        <th>E-post</th>
+                        <th>Admin</th>
+                        <th>Registrerad</th>
+                        <th>Åtgärder</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                                {{ user.name }}
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.is_admin %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-crown me-1"></i>Admin
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">Användare</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewUser({{ user.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if not user.is_admin or user.id != current_user.id %}
+                                <button class="btn btn-sm btn-outline-warning" onclick="toggleAdmin({{ user.id }}, {{ user.is_admin|lower }})">
+                                    <i class="fas fa-user-shield"></i>
+                                </button>
+                                {% endif %}
+                                {% if user.id != current_user.id %}
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser({{ user.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Inga användare hittades</h5>
+            <p class="text-muted">Lägg till den första användaren.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Användarstatistik -->
+{% if users %}
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="text-primary">{{ users|length }}</h3>
+                <p class="mb-0">Totala användare</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="text-warning">{{ users|selectattr('is_admin')|list|length }}</h3>
+                <p class="mb-0">Administratörer</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="text-success">{{ (users|length) - (users|selectattr('is_admin')|list|length) }}</h3>
+                <p class="mb-0">Vanliga användare</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal för användardetaljer -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Användardetaljer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="userModalBody">
+                <!-- Användardetaljer laddas här -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Stäng</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewUser(userId) {
+    // Hämta användardetaljer
+    fetch(`/api/users/${userId}`)
+        .then(response => response.json())
+        .then(user => {
+            document.getElementById('userModalBody').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Grundinformation</h6>
+                        <p><strong>Namn:</strong> ${user.name}</p>
+                        <p><strong>E-post:</strong> ${user.email}</p>
+                        <p><strong>Administratör:</strong> ${user.is_admin ? 'Ja' : 'Nej'}</p>
+                        <p><strong>Registrerad:</strong> ${new Date(user.created_at).toLocaleDateString('sv-SE')}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Statistik</h6>
+                        <p><strong>Tidrapporter:</strong> ${user.time_entries_count || 0}</p>
+                        <p><strong>Totala timmar:</strong> ${user.total_hours || 0} h</p>
+                        <p><strong>Senaste aktivitet:</strong> ${user.last_activity || 'Aldrig'}</p>
+                    </div>
+                </div>
+            `;
+            new bootstrap.Modal(document.getElementById('userModal')).show();
+        })
+        .catch(error => {
+            console.error('Fel vid hämtning av användardetaljer:', error);
+            alert('Kunde inte hämta användardetaljer');
+        });
+}
+
+function toggleAdmin(userId, isCurrentlyAdmin) {
+    const action = isCurrentlyAdmin ? 'ta bort admin-behörighet från' : 'ge admin-behörighet till';
+    
+    if (confirm(`Är du säker på att du vill ${action} denna användare?`)) {
+        // Implementera API-anrop
+        alert('Admin-toggle funktionalitet kommer snart!');
+    }
+}
+
+function deleteUser(userId) {
+    if (confirm('Är du säker på att du vill ta bort denna användare? Detta går inte att ångra.')) {
+        // Implementera API-anrop
+        alert('Borttagningsfunktionalitet kommer snart!');
+    }
+}
+
+// Auto-refresh var 30:e sekund
+setInterval(() => {
+    // Implementera auto-refresh om önskat
+}, 30000);
+</script>
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+}
+</style>
+{% endblock %}

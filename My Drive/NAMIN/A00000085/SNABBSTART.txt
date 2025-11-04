@@ -1,0 +1,38 @@
+📋 SNABBSTARTSGUIDE - Tidrapporteringssystem
+==============================================
+
+🚀 STARTA SYSTEMET (3 enkla steg):
+
+1️⃣ Öppna denna mapp i PowerShell eller Kommandotolken
+2️⃣ Dubbelklicka på "start.bat" ELLER kör "python app.py"
+3️⃣ Gå till http://localhost:5000 i din webbläsare
+
+🔑 FÖRSTA INLOGGNING:
+   E-post: admin@tidrapport.se
+   Lösenord: admin123
+
+📱 VAD KAN DU GÖRA:
+✅ Registrera arbetstid för olika klienter och projekt
+✅ Se rapporter och statistik över din tid
+✅ Exportera data till Excel/CSV
+✅ Hantera användare och klienter (som admin)
+
+🏢 FÖRINSTALLERADE KLIENTER:
+• NAMIN AB (Interna projekt)
+• Teknikföretaget XYZ (IT-konsult)
+• Startup Innovation (Rådgivning)
+
+🛠️ TEKNISK INFO:
+• Databas: SQLite (tidrapportering.db)
+• Port: 5000 (ändra i app.py om nödvändigt)
+• Stoppa: Ctrl+C i terminalen
+
+❓ PROBLEM?
+• Kör: pip install -r requirements.txt
+• Kontrollera att Python är installerat
+• Se README.md för detaljerad hjälp
+
+📞 SUPPORT:
+Se README.md eller kontakta systemutvecklaren.
+
+Lycka till! 🎯

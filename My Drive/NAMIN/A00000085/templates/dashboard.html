@@ -1,0 +1,795 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Tidrapportering{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Dashboard</h2>
+    <span class="text-muted">Använd kalendern nedan för att registrera tid</span>
+</div>
+
+<!-- Statistik kort -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0" id="hours-today">{{ "%.1f"|format(hours_today) }} tim</h5>
+                        <small>Idag</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-calendar-week fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0" id="hours-this-month">{{ "%.1f"|format(hours_this_month) }} tim</h5>
+                        <small>Denna månad</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-list fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ client_hours|length }}</h5>
+                        <small>Aktiva klienter</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">Aktiv</h5>
+                        <small>Status</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tidrapportering kalender -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>Tidrapportering - <span class="month-year-header">{{ month_name }} {{ year }}</span>
+                </h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary me-2" onclick="changeMonth(-1)">
+                        <i class="fas fa-chevron-left"></i> Förra
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="changeMonth(1)">
+                        Nästa <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="mini-calendar">
+                    <!-- Kalender kommer här -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Timmar per klient denna månad -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Timmar per klient - {{ month_name }} {{ year }}</h5>
+                <a href="{{ url_for('reports') }}" class="btn btn-sm btn-outline-primary">
+                    Se alla rapporter
+                </a>
+            </div>
+            <div class="card-body">
+                {% if client_hours %}
+                <div class="row">
+                    {% for client in client_hours %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1 text-dark">{{ client.client_name }}</h6>
+                                        <small class="text-muted">{{ "%.1f"|format(client.total_hours) }} timmar</small>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-primary rounded-pill">{{ "%.1f"|format(client.total_hours) }}h</span>
+                                    </div>
+                                </div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" 
+                                         style="width: {{ (client.total_hours / hours_this_month * 100) if hours_this_month > 0 else 0 }}%"
+                                         aria-valuenow="{{ client.total_hours }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="{{ hours_this_month }}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Inga tidrapporter för {{ month_name }}</h5>
+                    <p class="text-muted">Klicka på ett datum i kalendern för att lägga till arbetstid.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Modal för dagregistrering (samma som i calendar.html) -->
+<div class="modal fade" id="dayModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dayModalTitle">Tidrapport för dag</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="dayModalContent">
+                    <!-- Innehåll laddas dynamiskt -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+.mini-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background-color: #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.mini-calendar-day-header {
+    background-color: #f8f9fa;
+    padding: 8px 4px;
+    text-align: center;
+    font-weight: bold;
+    color: #495057;
+    font-size: 0.8rem;
+}
+
+.mini-calendar-day {
+    background-color: white;
+    min-height: 80px;
+    padding: 4px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.mini-calendar-day:hover {
+    background-color: #f8f9fa;
+}
+
+.mini-calendar-day.other-month {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.mini-calendar-day.today {
+    background-color: #e3f2fd;
+    border: 2px solid #2196f3;
+}
+
+.mini-day-number {
+    font-weight: bold;
+    margin-bottom: 3px;
+    font-size: 0.9rem;
+}
+
+.mini-day-entries {
+    font-size: 0.7rem;
+}
+
+.mini-time-entry {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: 1px 0;
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.entry-item {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: 1px 0;
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.mini-total-hours {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    background: #ffc107;
+    color: #212529;
+    padding: 1px 3px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: bold;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentDate = '';
+let clients = {{ clients|tojson }};
+let projects = {{ projects|tojson }};
+let currentYear = {{ year }};
+let currentMonth = {{ month }};
+let entriesByDate = {{ entries_by_date|tojson }};  // Global variabel för att komma åt från alla funktioner
+
+// Variabler för att komma ihåg senaste valen
+let lastSelectedClientId = '';
+let lastSelectedProjectId = '';
+
+document.addEventListener('DOMContentLoaded', function() {
+    renderMiniCalendar();
+    // Sätt upp initial knappstatus
+    updateNavigationButtons(currentYear, currentMonth);
+});
+
+// Hantera webbläsarens bakåt/framåt-knappar
+window.addEventListener('popstate', function(event) {
+    if (event.state) {
+        loadCalendarMonth(event.state.year, event.state.month);
+    }
+});
+
+function renderMiniCalendar() {
+    const monthDays = {{ month_days|tojson }};
+    const today = new Date().toISOString().split('T')[0];
+    
+    let html = `
+        <div class="mini-calendar-grid">
+            <div class="mini-calendar-day-header">Mån</div>
+            <div class="mini-calendar-day-header">Tis</div>
+            <div class="mini-calendar-day-header">Ons</div>
+            <div class="mini-calendar-day-header">Tor</div>
+            <div class="mini-calendar-day-header">Fre</div>
+            <div class="mini-calendar-day-header">Lör</div>
+            <div class="mini-calendar-day-header">Sön</div>
+    `;
+    
+    monthDays.forEach(week => {
+        week.forEach(day => {
+            if (day === 0) {
+                html += '<div class="mini-calendar-day other-month"></div>';
+            } else {
+                const dayDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = dayDate === today;
+                
+                let totalHours = 0;
+                let entriesHtml = '';
+                
+                if (entriesByDate[dayDate]) {
+                    entriesByDate[dayDate].forEach(entry => {
+                        totalHours += entry.hours;
+                        entriesHtml += `<div class="mini-time-entry" title="${entry.client_name} - ${entry.description}">${entry.client_name}: ${entry.hours.toFixed(1)}h</div>`;
+                    });
+                }
+                
+                html += `
+                    <div class="mini-calendar-day ${isToday ? 'today' : ''}" 
+                         data-date="${dayDate}" 
+                         onclick="openDayModal('${dayDate}')">
+                        <div class="mini-day-number">${day}</div>
+                        <div class="mini-day-entries">${entriesHtml}</div>
+                        ${totalHours > 0 ? `<div class="mini-total-hours">${totalHours.toFixed(1)}h</div>` : ''}
+                    </div>
+                `;
+            }
+        });
+    });
+    
+    html += '</div>';
+    document.getElementById('mini-calendar').innerHTML = html;
+}
+
+function renderMiniCalendarWithData(year, month, monthDays) {
+    const today = new Date().toISOString().split('T')[0];
+    
+    let html = `
+        <div class="mini-calendar-grid">
+            <div class="mini-calendar-day-header">Mån</div>
+            <div class="mini-calendar-day-header">Tis</div>
+            <div class="mini-calendar-day-header">Ons</div>
+            <div class="mini-calendar-day-header">Tor</div>
+            <div class="mini-calendar-day-header">Fre</div>
+            <div class="mini-calendar-day-header">Lör</div>
+            <div class="mini-calendar-day-header">Sön</div>
+    `;
+    
+    // Generera månadsstrukturen dynamiskt
+    const daysInMonth = monthDays;
+    const firstDay = new Date(year, month - 1, 1).getDay();
+    const startDay = firstDay === 0 ? 6 : firstDay - 1; // Måndag = 0
+    
+    let dayCount = 1;
+    
+    for (let week = 0; week < 6; week++) {
+        for (let day = 0; day < 7; day++) {
+            const dayIndex = week * 7 + day;
+            
+            if (dayIndex < startDay || dayCount > daysInMonth) {
+                html += '<div class="mini-calendar-day other-month"></div>';
+            } else {
+                const dayDate = `${year}-${String(month).padStart(2, '0')}-${String(dayCount).padStart(2, '0')}`;
+                const isToday = dayDate === today;
+                
+                let totalHours = 0;
+                let entriesHtml = '';
+                
+                if (window.entriesByDate && window.entriesByDate[dayDate]) {
+                    window.entriesByDate[dayDate].forEach(entry => {
+                        totalHours += entry.hours;
+                        entriesHtml += `<div class="mini-time-entry" title="${entry.client_name} - ${entry.description}">${entry.client_name}: ${entry.hours.toFixed(1)}h</div>`;
+                    });
+                }
+                
+                html += `
+                    <div class="mini-calendar-day ${isToday ? 'today' : ''}" 
+                         data-date="${dayDate}" 
+                         onclick="openDayModal('${dayDate}')">
+                        <div class="mini-day-number">${dayCount}</div>
+                        <div class="mini-day-entries">${entriesHtml}</div>
+                        ${totalHours > 0 ? `<div class="mini-total-hours">${totalHours.toFixed(1)}h</div>` : ''}
+                    </div>
+                `;
+                dayCount++;
+            }
+        }
+        
+        if (dayCount > daysInMonth) break;
+    }
+    
+    html += '</div>';
+    document.getElementById('mini-calendar').innerHTML = html;
+}
+
+function changeMonth(direction) {
+    let newYear = currentYear;
+    let newMonth = currentMonth + direction;
+    
+    if (newMonth > 12) {
+        newMonth = 1;
+        newYear++;
+    } else if (newMonth < 1) {
+        newMonth = 12;
+        newYear--;
+    }
+    
+    // Begränsa navigation till framtida månader (men tillåt alla tidigare månader)
+    const now = new Date();
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth() + 1;
+    
+    if (newYear > todayYear || (newYear === todayYear && newMonth > todayMonth)) {
+        return; // Kan inte gå senare än innevarande månad
+    }
+    
+    // Ta bort begränsning för tidigare år - nu kan vi gå hur långt tillbaka som helst
+    
+    // Uppdatera kalendern med AJAX
+    loadCalendarMonth(newYear, newMonth);
+}
+
+function loadCalendarMonth(year, month) {
+    // Visa laddningsindikator
+    const calendarContainer = document.querySelector('.calendar-days');
+    if (calendarContainer) {
+        calendarContainer.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin"></i> Laddar...</div>';
+    }
+    
+    // Hämta kalenderdata
+    fetch(`/api/calendar_data?year=${year}&month=${month}`)
+        .then(response => response.json())
+        .then(data => {
+            // Uppdatera globala variabler
+            currentYear = data.year;
+            currentMonth = data.month;
+            
+            // Uppdatera månadsrubrik
+            const monthHeader = document.querySelector('.month-year-header');
+            if (monthHeader) {
+                monthHeader.textContent = `${data.month_name} ${data.year}`;
+            }
+            
+            // Uppdatera entries_by_date för dagen
+            window.entriesByDate = data.entries_by_date || {};
+            
+            // Uppdatera kalender med ny data
+            renderMiniCalendarWithData(data.year, data.month, data.month_days);
+            
+            // Uppdatera statistik
+            updateStatistics(data.hours_today, data.hours_this_month);
+            
+            // Uppdatera knappars disabled-status
+            updateNavigationButtons(data.year, data.month);
+            
+            // Uppdatera URL utan att ladda om sidan
+            const newUrl = `${window.location.pathname}?year=${year}&month=${month}`;
+            window.history.pushState({year: year, month: month}, '', newUrl);
+        })
+        .catch(error => {
+            console.error('Fel vid laddning av kalenderdata:', error);
+            if (calendarContainer) {
+                calendarContainer.innerHTML = '<div class="text-center p-4 text-danger">Fel vid laddning av kalenderdata</div>';
+            }
+        });
+}
+
+function updateStatistics(hoursToday, hoursThisMonth) {
+    // Uppdatera dagens timmar
+    const todayElement = document.getElementById('hours-today');
+    if (todayElement) {
+        todayElement.textContent = `${hoursToday.toFixed(1)} tim`;
+    }
+    
+    // Uppdatera månadens timmar
+    const monthElement = document.getElementById('hours-this-month');
+    if (monthElement) {
+        monthElement.textContent = `${hoursThisMonth.toFixed(1)} tim`;
+    }
+}
+
+function updateNavigationButtons(year, month) {
+    const now = new Date();
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth() + 1;
+    
+    // Uppdatera "Nästa" knappen
+    const nextBtn = document.querySelector('button[onclick="changeMonth(1)"]');
+    if (nextBtn) {
+        if (year >= todayYear && month >= todayMonth) {
+            nextBtn.disabled = true;
+        } else {
+            nextBtn.disabled = false;
+        }
+    }
+    
+    // "Förra" knappen är alltid aktiverad nu (inga begränsningar bakåt)
+    const prevBtn = document.querySelector('button[onclick="changeMonth(-1)"]');
+    if (prevBtn) {
+        prevBtn.disabled = false;
+    }
+}
+
+// Samma funktioner som i calendar.html
+function openDayModal(date) {
+    currentDate = date;
+    const dateObj = new Date(date);
+    const formattedDate = dateObj.toLocaleDateString('sv-SE', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    document.getElementById('dayModalTitle').textContent = `Tidrapport för ${formattedDate}`;
+    
+    loadDayEntries(date);
+    new bootstrap.Modal(document.getElementById('dayModal')).show();
+}
+
+function loadDayEntries(date) {
+    const entries = getEntriesForDate(date);
+    
+    let html = `
+        <div id="addEntryForm" class="card mb-3">
+            <div class="card-body">
+                <h6>Ny tidrapport</h6>
+                <form id="entryForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Klient *</label>
+                                <select class="form-select" id="clientSelect" required onchange="updateProjects()">
+                                    <option value="">Välj klient...</option>
+                                    ${clients.map(c => `<option value="${c.id}" ${c.id == lastSelectedClientId ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Projekt</label>
+                                <select class="form-select" id="projectSelect">
+                                    <option value="">Välj projekt...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Timmar *</label>
+                                <input type="number" class="form-control" id="hoursInput" step="0.25" min="0.25" max="24" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Beskrivning</label>
+                                <input type="text" class="form-control" id="descriptionInput" placeholder="Vad arbetade du med? (valfritt)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">Spara tidrapport</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div id="existingEntries">
+            ${renderExistingEntries(entries)}
+        </div>
+    `;
+    
+    document.getElementById('dayModalContent').innerHTML = html;
+    document.getElementById('entryForm').addEventListener('submit', saveEntry);
+    
+    // Sätt default-projekt om det finns en vald klient
+    if (lastSelectedClientId) {
+        updateProjects();  // Ladda projekt för den valda klienten
+        
+        // Sätt default-projekt efter en kort delay så att projekten hinns laddas
+        setTimeout(() => {
+            if (lastSelectedProjectId) {
+                document.getElementById('projectSelect').value = lastSelectedProjectId;
+            }
+        }, 10);
+    }
+}
+
+function getEntriesForDate(date) {
+    return entriesByDate[date] || [];
+}
+
+function renderExistingEntries(entries) {
+    if (entries.length === 0) {
+        return '<p class="text-muted">Inga tidrapporter för denna dag.</p>';
+    }
+    
+    let html = '<h6>Befintliga tidrapporter:</h6>';
+    let totalHours = 0;
+    
+    entries.forEach(entry => {
+        totalHours += entry.hours;
+        
+        html += `
+            <div class="card mb-2">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${entry.client_name}</strong> - ${entry.project_name}
+                            <br><small class="text-muted">${entry.description}</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary">${entry.hours}h</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteEntry(${entry.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `<div class="alert alert-info mt-2">Totalt: <strong>${totalHours.toFixed(1)} timmar</strong></div>`;
+    return html;
+}
+
+
+
+function updateProjects() {
+    const clientId = document.getElementById('clientSelect').value;
+    const projectSelect = document.getElementById('projectSelect');
+    
+    projectSelect.innerHTML = '<option value="">Välj projekt...</option>';
+    
+    if (clientId) {
+        const clientProjects = projects.filter(p => p.client_id == clientId);
+        clientProjects.forEach(project => {
+            projectSelect.innerHTML += `<option value="${project.id}">${project.name}</option>`;
+        });
+    }
+}
+
+function saveEntry(e) {
+    e.preventDefault();
+    
+    const data = {
+        date: currentDate,
+        client_id: document.getElementById('clientSelect').value,
+        project_id: document.getElementById('projectSelect').value || null,
+        hours: parseFloat(document.getElementById('hoursInput').value),
+        description: document.getElementById('descriptionInput').value.trim()
+    };
+    
+    // Spara de valda värdena för framtida användning
+    lastSelectedClientId = data.client_id;
+    lastSelectedProjectId = data.project_id || '';
+    
+    if (!data.client_id || !data.hours) {
+        alert('Vänligen fyll i klient och timmar.');
+        return;
+    }
+    
+    fetch('/api/save_time_entry', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            document.getElementById('entryForm').reset();
+            
+            // Uppdatera kalendern utan att ladda om sidan
+            updateCalendarAfterSave(currentDate, data);
+            loadDayEntries(currentDate); // Uppdatera modal-innehållet
+            
+            // Stäng modal-rutan
+            const modal = bootstrap.Modal.getInstance(document.getElementById('dayModal'));
+            if (modal) {
+                modal.hide();
+            }
+        } else {
+            showToast(result.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Ett fel uppstod: ' + error, 'danger');
+    });
+}
+
+function deleteEntry(entryId) {
+    if (!confirm('Är du säker på att du vill ta bort denna tidrapport?')) {
+        return;
+    }
+    
+    fetch('/api/delete_time_entry', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ entry_id: entryId })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            
+            // Ta bort posten från entriesByDate och uppdatera kalendern
+            removeEntryFromCalendar(entryId, currentDate);
+            loadDayEntries(currentDate); // Uppdatera modal-innehållet
+        } else {
+            showToast(result.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Ett fel uppstod: ' + error, 'danger');
+    });
+}
+
+function updateCalendarAfterSave(date, entryData) {
+    // Lägg till den nya posten i entriesByDate
+    if (!entriesByDate[date]) {
+        entriesByDate[date] = [];
+    }
+    
+    // Skapa entry objekt som matchar serverns format
+    const newEntry = {
+        hours: parseFloat(entryData.hours),
+        description: entryData.description || '',
+        client_name: clients.find(c => c.id == entryData.client_id)?.name || 'Okänd klient',
+        project_name: entryData.project_id ? projects.find(p => p.id == entryData.project_id)?.name || 'Okänt projekt' : 'Inget projekt'
+    };
+    
+    entriesByDate[date].push(newEntry);
+    
+    // Uppdatera kalendercellen
+    updateCalendarCell(date);
+}
+
+function updateCalendarCell(date) {
+    const cell = document.querySelector(`[data-date="${date}"]`);
+    if (!cell) return;
+    
+    const entries = entriesByDate[date] || [];
+    let totalHours = 0;
+    let entriesHtml = '';
+    
+    entries.forEach(entry => {
+        totalHours += entry.hours;
+        entriesHtml += `<div class="entry-item">${entry.client_name}: ${entry.hours}h</div>`;
+    });
+    
+    // Uppdatera cellens innehåll
+    const dayNumber = cell.querySelector('.mini-day-number').textContent;
+    cell.innerHTML = `
+        <div class="mini-day-number">${dayNumber}</div>
+        <div class="mini-day-entries">${entriesHtml}</div>
+        ${totalHours > 0 ? `<div class="mini-total-hours">${totalHours.toFixed(1)}h</div>` : ''}
+    `;
+}
+
+function removeEntryFromCalendar(entryId, date) {
+    // Ta bort posten från entriesByDate (vi behöver serverns data för detta)
+    // För nu, bara uppdatera cellen genom att ladda om data från servern
+    fetch(`/get_day_entries?date=${date}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                entriesByDate[date] = data.entries;
+                updateCalendarCell(date);
+            }
+        });
+}
+</script>
+{% endblock %}

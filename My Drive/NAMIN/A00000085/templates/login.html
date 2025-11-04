@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Logga in - Tidrapportering{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-header text-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-sign-in-alt me-2"></i>Logga in
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">E-postadress</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Lösenord</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i>Logga in
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <small>
+                    Har du inget konto? 
+                    <a href="{{ url_for('register') }}">Registrera dig här</a>
+                </small>
+            </div>
+        </div>
+        
+        <div class="mt-3 p-3 bg-light rounded">
+            <h6>Demo-konton:</h6>
+            <small>
+                <strong>Admin:</strong> admin@tidrapport.se / admin123<br>
+                <em>Skapa ett eget konto eller använd admin-kontot för att testa systemet.</em>
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}

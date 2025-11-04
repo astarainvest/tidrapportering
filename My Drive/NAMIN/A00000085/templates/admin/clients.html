@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}Hantera klienter - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Hantera klienter</h2>
+    <div>
+        <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left me-1"></i>Tillbaka
+        </a>
+        <button class="btn btn-primary" onclick="showAddClientModal()">
+            <i class="fas fa-building me-2"></i>Lägg till klient
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-building me-2"></i>Alla klienter
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if clients %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Namn</th>
+                        <th>Beskrivning</th>
+                        <th>Projekt</th>
+                        <th>Status</th>
+                        <th>Skapad</th>
+                        <th>Åtgärder</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                    <tr>
+                        <td>{{ client.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm bg-success rounded-circle d-flex align-items-center justify-content-center me-2">
+                                    <i class="fas fa-building text-white"></i>
+                                </div>
+                                <strong>{{ client.name }}</strong>
+                            </div>
+                        </td>
+                        <td>
+                            {% if client.description %}
+                                {{ client.description[:50] }}{% if client.description|length > 50 %}...{% endif %}
+                            {% else %}
+                                <em class="text-muted">Ingen beskrivning</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ client.projects|length }} projekt</span>
+                        </td>
+                        <td>
+                            {% if client.active %}
+                                <span class="badge bg-success">Aktiv</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inaktiv</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ client.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewClient({{ client.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="editClient({{ client.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning" onclick="toggleClientStatus({{ client.id }}, {{ client.active|lower }})">
+                                    <i class="fas fa-toggle-{% if client.active %}on{% else %}off{% endif %}"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteClient({{ client.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Inga klienter ännu</h5>
+            <p class="text-muted">Lägg till den första klienten för att komma igång.</p>
+            <button class="btn btn-primary" onclick="showAddClientModal()">
+                <i class="fas fa-building me-2"></i>Lägg till klient
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Klientstatistik -->
+{% if clients %}
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="text-primary">{{ clients|length }}</h3>
+                <p class="mb-0">Totala klienter</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="text-success">{{ clients|selectattr('active')|list|length }}</h3>
+                <p class="mb-0">Aktiva klienter</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="text-info">{{ clients|sum(attribute='projects')|length if clients else 0 }}</h3>
+                <p class="mb-0">Totala projekt</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="text-warning">{{ clients|sum(attribute='time_entries')|length if clients else 0 }}</h3>
+                <p class="mb-0">Tidrapporter</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal för ny klient -->
+<div class="modal fade" id="addClientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lägg till ny klient</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addClientForm">
+                    <div class="mb-3">
+                        <label for="clientName" class="form-label">Klientnamn *</label>
+                        <input type="text" class="form-control" id="clientName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="clientDescription" class="form-label">Beskrivning</label>
+                        <textarea class="form-control" id="clientDescription" rows="3" placeholder="Beskriv klienten..."></textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="clientActive" checked>
+                        <label class="form-check-label" for="clientActive">
+                            Aktiv klient
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
+                <button type="button" class="btn btn-primary" onclick="addClient()">
+                    <i class="fas fa-save me-2"></i>Spara
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal för klientdetaljer -->
+<div class="modal fade" id="clientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Klientdetaljer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="clientModalBody">
+                <!-- Klientdetaljer laddas här -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Stäng</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showAddClientModal() {
+    // Rensa formulär
+    document.getElementById('addClientForm').reset();
+    document.getElementById('clientActive').checked = true;
+    
+    new bootstrap.Modal(document.getElementById('addClientModal')).show();
+}
+
+function addClient() {
+    const name = document.getElementById('clientName').value.trim();
+    const description = document.getElementById('clientDescription').value.trim();
+    const active = document.getElementById('clientActive').checked;
+    
+    if (!name) {
+        alert('Klientnamn är obligatoriskt');
+        document.getElementById('clientName').focus();
+        return;
+    }
+    
+    // Här skulle vi skicka data till servern
+    // För nu visar vi bara ett meddelande
+    alert(`Klient "${name}" skulle skapas med status: ${active ? 'Aktiv' : 'Inaktiv'}\nBeskrivning: ${description || 'Ingen beskrivning'}`);
+    
+    // Stäng modal
+    bootstrap.Modal.getInstance(document.getElementById('addClientModal')).hide();
+    
+    // Ladda om sidan (i verklig implementation skulle vi uppdatera tabellen dynamiskt)
+    // location.reload();
+}
+
+function viewClient(clientId) {
+    // Simulera API-anrop
+    const clientData = {
+        id: clientId,
+        name: 'Exempel Klient AB',
+        description: 'Detta är en beskrivning av klienten...',
+        active: true,
+        created_at: new Date().toISOString(),
+        projects_count: 3,
+        total_hours: 245.5,
+        last_activity: new Date().toISOString()
+    };
+    
+    document.getElementById('clientModalBody').innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Grundinformation</h6>
+                <p><strong>Namn:</strong> ${clientData.name}</p>
+                <p><strong>Beskrivning:</strong> ${clientData.description}</p>
+                <p><strong>Status:</strong> <span class="badge bg-${clientData.active ? 'success' : 'secondary'}">${clientData.active ? 'Aktiv' : 'Inaktiv'}</span></p>
+                <p><strong>Skapad:</strong> ${new Date(clientData.created_at).toLocaleDateString('sv-SE')}</p>
+            </div>
+            <div class="col-md-6">
+                <h6>Statistik</h6>
+                <p><strong>Projekt:</strong> ${clientData.projects_count || 0}</p>
+                <p><strong>Totala timmar:</strong> ${clientData.total_hours || 0} h</p>
+                <p><strong>Senaste aktivitet:</strong> ${new Date(clientData.last_activity).toLocaleDateString('sv-SE')}</p>
+            </div>
+        </div>
+        <div class="mt-3">
+            <h6>Projekt</h6>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Projektlista kommer att visas här i den färdiga versionen.
+            </div>
+        </div>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('clientModal')).show();
+}
+
+function editClient(clientId) {
+    alert(`Redigeringsfunktionalitet för klient ${clientId} kommer snart!`);
+}
+
+function toggleClientStatus(clientId, isCurrentlyActive) {
+    const action = isCurrentlyActive ? 'inaktivera' : 'aktivera';
+    
+    if (confirm(`Är du säker på att du vill ${action} denna klient?`)) {
+        alert(`Klient ${clientId} skulle ${action}ras`);
+        // location.reload(); // I verklig implementation
+    }
+}
+
+function deleteClient(clientId) {
+    if (confirm('Är du säker på att du vill ta bort denna klient?\n\nOBS: Detta kommer också att ta bort alla relaterade projekt och tidrapporter.\nDetta går inte att ångra.')) {
+        alert(`Klient ${clientId} skulle tas bort`);
+        // location.reload(); // I verklig implementation
+    }
+}
+</script>
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+}
+</style>
+{% endblock %}

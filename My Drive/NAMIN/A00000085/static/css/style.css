@@ -1,0 +1,492 @@
+/* Custom CSS för Tidrapporteringssystem */
+
+:root {
+    --primary-color: #007bff;
+    --success-color: #28a745;
+    --info-color: #17a2b8;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+}
+
+/* Global stilar */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+    -webkit-text-size-adjust: 100%; /* Förhindrar automatisk textskalning på iOS */
+    -webkit-touch-callout: none; /* Inaktiverar callout på iOS */
+}
+
+/* Touch-vänliga element */
+.btn,
+.nav-link,
+.dropdown-toggle {
+    min-height: 44px; /* Minsta storlek för touch targets enligt Apple HIG */
+    display: flex;
+    align-items: center;
+}
+
+/* Bättre touch-feedback */
+.btn:active,
+.nav-link:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+}
+
+/* Förbättra scrollning på iOS */
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Förhindra zoom vid fokus på input (iOS) */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+textarea,
+select {
+    font-size: 16px !important; /* 16px förhindrar zoom på iOS */
+}
+
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+/* Kort och paneler */
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: white;
+    border-bottom: 2px solid #e9ecef;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Knappar */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.btn-group .btn {
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-group .btn:hover {
+    transform: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+/* Dashboard statistik kort */
+.dashboard-stat-card {
+    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.dashboard-stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.dashboard-stat-card h3 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-stat-card p {
+    opacity: 0.9;
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+/* Tabeller */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: var(--dark-color);
+    background-color: var(--light-color);
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,0.05);
+}
+
+/* Badges */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+}
+
+/* Forms */
+.form-control, .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    padding: 0.75rem;
+    transition: all 0.15s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.15);
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--dark-color);
+}
+
+/* Jumbotron (för startsidan) */
+.jumbotron {
+    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+    border-radius: 10px;
+}
+
+/* Animationer */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Loading spinner */
+.spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsiv design för mobil */
+@media (max-width: 768px) {
+    /* Container och layout */
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    /* Kort och paneler */
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    /* Jumbotron på startsidan */
+    .jumbotron {
+        padding: 2rem 1.5rem !important;
+        margin-bottom: 2rem !important;
+    }
+    
+    .jumbotron h1 {
+        font-size: 2rem !important;
+    }
+    
+    .jumbotron .lead {
+        font-size: 1rem;
+    }
+    
+    /* Knappar */
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+        width: 100%;
+    }
+    
+    /* Navigation */
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .navbar-nav .nav-link {
+        padding: 0.75rem 1rem;
+    }
+    
+    /* Tabeller */
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.5rem 0.25rem;
+        word-break: break-word;
+    }
+    
+    /* Dashboard statistik */
+    .dashboard-stat-card {
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .dashboard-stat-card h3 {
+        font-size: 1.75rem;
+    }
+    
+    /* Formulär */
+    .form-control,
+    .form-select {
+        padding: 0.75rem 0.5rem;
+        font-size: 16px; /* Förhindrar zoom på iPhone */
+    }
+    
+    .form-label {
+        font-size: 0.9rem;
+    }
+    
+    /* Modal dialogs */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    /* Admin sidebar */
+    .admin-sidebar {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Extra små skärmar (iPhone SE och mindre) */
+@media (max-width: 576px) {
+    /* Jumbotron */
+    .jumbotron {
+        padding: 1.5rem 1rem !important;
+    }
+    
+    .jumbotron h1 {
+        font-size: 1.75rem !important;
+    }
+    
+    /* Knappar staplas vertikalt */
+    .btn-lg {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .me-3 {
+        margin-right: 0 !important;
+    }
+    
+    /* Kort i rader */
+    .col-md-4,
+    .col-lg-4,
+    .col-lg-8 {
+        margin-bottom: 1rem;
+    }
+    
+    /* Tabeller ännu mer kompakta */
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+    
+    /* Dashboard stats tar full bredd */
+    .dashboard-stat-card {
+        text-align: center;
+    }
+    
+    /* Navigation kompakt */
+    .navbar {
+        padding: 0.5rem 0;
+    }
+    
+    .navbar-brand {
+        font-size: 1rem;
+    }
+}
+
+/* Landscape mode på mobil */
+@media (max-height: 500px) and (orientation: landscape) {
+    .jumbotron {
+        padding: 1rem !important;
+    }
+    
+    .jumbotron h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .navbar {
+        padding: 0.25rem 0;
+    }
+}
+
+/* Admin särskilt */
+.admin-header {
+    background: linear-gradient(135deg, #6f42c1, #5a32a3);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.admin-sidebar {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+}
+
+.admin-sidebar .nav-link {
+    color: var(--dark-color);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    transition: all 0.15s ease;
+}
+
+.admin-sidebar .nav-link:hover {
+    background-color: var(--light-color);
+    color: var(--primary-color);
+}
+
+.admin-sidebar .nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Status indikatorer */
+.status-online {
+    color: var(--success-color);
+}
+
+.status-offline {
+    color: var(--danger-color);
+}
+
+.status-dot {
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.status-dot.online {
+    background-color: var(--success-color);
+}
+
+.status-dot.offline {
+    background-color: var(--danger-color);
+}
+
+/* Tooltips anpassning */
+.tooltip {
+    font-size: 0.8rem;
+}
+
+/* Print stilar */
+@media print {
+    .navbar, .btn, .card-header, footer {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    .table {
+        font-size: 0.8rem;
+    }
+}
+
+/* Dark mode support (för framtida utveckling) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #1a1a1a;
+        --text-color: #ffffff;
+        --card-bg: #2d2d2d;
+    }
+    
+    /* Dark mode implementeras här när önskat */
+}
+
+/* Utility klasser */
+.text-gradient {
+    background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.shadow-custom {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.border-radius-lg {
+    border-radius: 12px;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+}
+
+.avatar-md {
+    width: 48px;
+    height: 48px;
+}
+
+.avatar-lg {
+    width: 64px;
+    height: 64px;
+}

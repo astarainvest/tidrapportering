@@ -1,0 +1,651 @@
+{% extends "base.html" %}
+
+{% block title %}Rapporter - Tidrapportering{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Mina tidrapporter</h2>
+    <a href="{{ url_for('calendar_view') }}" class="btn btn-primary">
+        <i class="fas fa-calendar-alt me-2"></i>Tidrapportering
+    </a>
+</div>
+
+
+
+<!-- Historisk filtrering och översikt -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form class="row g-3" id="historicFilterForm">
+            <div class="col-md-3">
+                <label for="historicFilterYear" class="form-label">År</label>
+                <select class="form-select" id="historicFilterYear">
+                    <option value="">Alla år</option>
+                    {% for year in available_years %}
+                    <option value="{{ year }}">{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="historicFilterClient" class="form-label">Klient</label>
+                <select class="form-select" id="historicFilterClient">
+                    <option value="">Alla klienter</option>
+                    {% for client in clients %}
+                    <option value="{{ client.name }}">{{ client.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="historicFilterProject" class="form-label">Projekt</label>
+                <select class="form-select" id="historicFilterProject">
+                    <option value="">Alla projekt</option>
+                    {% for project in projects %}
+                    <option value="{{ project.name }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label> <!-- För att matcha höjden -->
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" onclick="
+                        var yearSelect = document.getElementById('historicFilterYear');
+                        var clientSelect = document.getElementById('historicFilterClient');
+                        var projectSelect = document.getElementById('historicFilterProject');
+                        
+                        var selectedYear = yearSelect ? yearSelect.value : '';
+                        var selectedClient = clientSelect ? clientSelect.value : '';
+                        var selectedProject = projectSelect ? projectSelect.value : '';
+                        
+                        var rows = document.querySelectorAll('tbody tr');
+                        var visibleCount = 0;
+                        
+                        for(var i=0; i<rows.length; i++) {
+                            var row = rows[i];
+                            var monthCell = row.cells[0];
+                            var clientCell = row.cells[1];
+                            var projectCell = row.cells[2];
+                            
+                            var monthText = monthCell ? monthCell.textContent.trim() : '';
+                            var clientText = clientCell ? clientCell.textContent.trim() : '';
+                            var projectText = projectCell ? projectCell.textContent.trim() : '';
+                            
+                            var showRow = true;
+                            
+                            // Filtrera på år
+                            if(selectedYear && selectedYear !== '' && monthText.indexOf(selectedYear) === -1) {
+                                showRow = false;
+                            }
+                            
+                            // Filtrera på klient
+                            if(selectedClient && selectedClient !== '' && clientText.toLowerCase().indexOf(selectedClient.toLowerCase()) === -1) {
+                                showRow = false;
+                            }
+                            
+                            // Filtrera på projekt
+                            if(selectedProject && selectedProject !== '' && projectText.toLowerCase().indexOf(selectedProject.toLowerCase()) === -1) {
+                                showRow = false;
+                            }
+                            
+                            if(showRow) {
+                                row.style.display = '';
+                                visibleCount++;
+                            } else {
+                                row.style.display = 'none';
+                            }
+                        }
+                        
+                        // Uppdatera status
+                        var statusElement = document.querySelector('.badge.bg-info');
+                        if(statusElement) {
+                            statusElement.textContent = 'Visar: ' + visibleCount + ' poster';
+                        }
+                    ">
+                        <i class="fas fa-filter me-1"></i>Filtrera
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label> <!-- För att matcha höjden -->
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-secondary" onclick="
+                        document.getElementById('historicFilterYear').value = '';
+                        document.getElementById('historicFilterClient').value = '';
+                        document.getElementById('historicFilterProject').value = '';
+                        var rows = document.querySelectorAll('tbody tr');
+                        for(var i=0; i<rows.length; i++) {
+                            rows[i].style.display = '';
+                        }
+                        var statusElement = document.querySelector('.badge.bg-info');
+                        if(statusElement) {
+                            statusElement.textContent = 'Totalt: ' + rows.length + ' poster';
+                        }
+                    ">
+                        <i class="fas fa-times me-1"></i>Rensa filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Historisk -->
+{% if client_history %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Historisk
+                </h5>
+                <div>
+                    <span class="badge bg-info" id="historicTotalHours">
+                        Totalt: {{ "%.1f"|format(client_history | sum(attribute='total_hours')) }} timmar
+                    </span>
+                    <button class="btn btn-sm btn-success ms-2" onclick="exportHistoricToCSV()">
+                        <i class="fas fa-download me-1"></i>Exportera
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="historicTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Månad</th>
+                                <th>Klient</th>
+                                <th>Projekt</th>
+                                <th class="text-end">Totalt timmar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in client_history %}
+                            <tr>
+                                <td>
+                                    <strong>{{ record.month_display }}</strong>
+                                </td>
+                                <td>
+                                    <i class="fas fa-building me-2 text-primary"></i>
+                                    {{ record.client_name }}
+                                </td>
+                                <td>
+                                    <i class="fas fa-project-diagram me-2 text-info"></i>
+                                    {{ record.project_name }}
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-success fs-6">{{ "%.1f"|format(record.total_hours) }}h</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <th colspan="3" class="text-end">Totalt:</th>
+                                <th class="text-end">
+                                    <span class="badge bg-primary fs-5">{{ "%.1f"|format(client_history | sum(attribute='total_hours')) }}h</span>
+                                </th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Statistik -->
+{% if entries %}
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Timmar per klient</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="clientChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Timmar per vecka</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="weekChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Aktivera tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Ladda filter-alternativ
+    loadFilterOptions();
+    
+    // Skapa diagram om det finns data
+    {% if entries %}
+    createClientChart();
+    createWeekChart();
+    {% endif %}
+});
+
+function loadFilterOptions() {
+    // Hämta unika klienter från tabellen
+    const clientSelect = document.getElementById('filterClient');
+    const rows = document.querySelectorAll('#entriesTable tbody tr');
+    const clients = new Set();
+    
+    rows.forEach(row => {
+        const clientCell = row.cells[1].textContent;
+        clients.add(clientCell);
+    });
+    
+    clients.forEach(client => {
+        const option = document.createElement('option');
+        option.value = client;
+        option.textContent = client;
+        clientSelect.appendChild(option);
+    });
+}
+
+function filterEntries() {
+    const dateFrom = document.getElementById('filterDateFrom').value;
+    const dateTo = document.getElementById('filterDateTo').value;
+    const client = document.getElementById('filterClient').value;
+    const rows = document.querySelectorAll('#entriesTable tbody tr');
+    
+    let visibleRows = 0;
+    let totalHours = 0;
+    
+    rows.forEach(row => {
+        const rowDate = row.cells[0].textContent;
+        const rowClient = row.cells[1].textContent;
+        const rowHours = parseFloat(row.cells[3].textContent.replace('h', ''));
+        
+        let show = true;
+        
+        if (dateFrom && rowDate < dateFrom) show = false;
+        if (dateTo && rowDate > dateTo) show = false;
+        if (client && rowClient !== client) show = false;
+        
+        if (show) {
+            row.style.display = '';
+            visibleRows++;
+            totalHours += rowHours;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('totalHours').textContent = `Totalt: ${totalHours.toFixed(1)} timmar (${visibleRows} poster)`;
+}
+
+function resetFilter() {
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    document.getElementById('filterClient').value = '';
+    
+    const rows = document.querySelectorAll('#entriesTable tbody tr');
+    let totalHours = 0;
+    
+    rows.forEach(row => {
+        row.style.display = '';
+        const rowHours = parseFloat(row.cells[3].textContent.replace('h', ''));
+        totalHours += rowHours;
+    });
+    
+    document.getElementById('totalHours').textContent = `Totalt: ${totalHours.toFixed(1)} timmar`;
+}
+
+function editEntry(id) {
+    // Implementera redigeringsfunktion
+    alert('Redigeringsfunktion kommer snart!');
+}
+
+function deleteEntry(id) {
+    if (confirm('Är du säker på att du vill ta bort denna tidrapport?')) {
+        // Implementera borttagningsfunktion
+        alert('Borttagningsfunktion kommer snart!');
+    }
+}
+
+// Enkel filterfunktion som ska fungera - UTAN ALERTS!
+function simpleFilterHistoric() {
+    console.log('=== simpleFilterHistoric BÖRJAR ===');
+    
+    const yearSelect = document.getElementById('historicFilterYear');
+    if (!yearSelect) {
+        console.error('Kunde inte hitta år-dropdown!');
+        return;
+    }
+    
+    const year = yearSelect.value;
+    console.log('Valt år:', year);
+    
+    // Hitta rätt tabell - den som innehåller client_history data
+    const tables = document.querySelectorAll('table');
+    console.log('Hittade', tables.length, 'tabeller');
+    
+    let targetTable = null;
+    tables.forEach((table, i) => {
+        const hasMonthData = table.querySelector('strong');
+        if (hasMonthData) {
+            console.log('Tabell', i, 'har månadsdata');
+            targetTable = table;
+        }
+    });
+    
+    if (!targetTable) {
+        console.error('Kunde inte hitta historik-tabellen med månadsdata!');
+        return;
+    }
+    
+    const rows = targetTable.querySelectorAll('tbody tr');
+    console.log('Hittade', rows.length, 'datarader');
+    
+    let visibleCount = 0;
+    let totalRows = rows.length;
+    
+    rows.forEach(function(row, index) {
+        const firstCell = row.cells[0];
+        if (!firstCell) return;
+        
+        const strongElement = firstCell.querySelector('strong');
+        let monthText = strongElement ? strongElement.textContent.trim() : firstCell.textContent.trim();
+        
+        console.log(`Rad ${index}: "${monthText}"`);
+        
+        let shouldShow = true;
+        
+        if (year && year !== '' && year !== 'all') {
+            // Kontrollera om månadstext slutar med året (eftersom formatet är "Månad YYYY")
+            shouldShow = monthText.endsWith(year) || monthText.includes(year);
+            console.log(`Rad ${index}: "${monthText}" innehåller/slutar med "${year}":`, shouldShow);
+        }
+        
+        if (shouldShow) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    console.log('=== RESULTAT: Visar', visibleCount, 'av', totalRows, 'rader ===');
+    
+    // Uppdatera status text istället för alert
+    const statusElement = document.querySelector('.badge.bg-info');
+    if (statusElement) {
+        statusElement.textContent = `Filtrerat: ${visibleCount} av ${totalRows} poster (År: ${year || 'alla'})`;
+    }
+}
+
+// Superenkel funktion
+function workingFilter() {
+    alert('Funktionen startade!');
+    
+    var yearSelect = document.getElementById('historicFilterYear');
+    if (!yearSelect) {
+        alert('Hittar inte dropdown!');
+        return;
+    }
+    
+    var selectedYear = yearSelect.value;
+    alert('Valt år: ' + selectedYear);
+    
+    var allRows = document.querySelectorAll('tbody tr');
+    alert('Hittade ' + allRows.length + ' rader');
+    
+    if (allRows.length === 0) {
+        alert('Inga rader att filtrera!');
+        return;
+    }
+    
+    var hiddenCount = 0;
+    
+    for (var i = 0; i < allRows.length; i++) {
+        var row = allRows[i];
+        var firstCell = row.cells[0];
+        var monthText = firstCell.textContent;
+        
+        if (selectedYear && monthText.indexOf(selectedYear) === -1) {
+            row.style.display = 'none';
+            hiddenCount++;
+        } else {
+            row.style.display = '';
+        }
+    }
+    
+    alert('KLART! Döljer ' + hiddenCount + ' rader');
+}
+
+// Funktioner för historisk filtrering
+function filterHistoric() {
+    console.log('filterHistoric anropad!');
+    const year = document.getElementById('historicFilterYear').value;
+    const clientId = document.getElementById('historicFilterClient').value;
+    const projectId = document.getElementById('historicFilterProject').value;
+    
+    console.log('Filter-värden:', { år: year, klient: clientId, projekt: projectId });
+    
+    const table = document.getElementById('historicTable');
+    if (!table) {
+        console.error('Historik-tabell hittades inte');
+        return;
+    }
+    
+    const rows = table.querySelectorAll('tbody tr');
+    let visibleRows = 0;
+    let totalHours = 0;
+    
+    // Hämta klient- och projektnamn för filtrering
+    const clientSelect = document.getElementById('historicFilterClient');
+    const projectSelect = document.getElementById('historicFilterProject');
+    const clientName = clientId && clientSelect ? clientSelect.options[clientSelect.selectedIndex].text : '';
+    const projectName = projectId && projectSelect ? projectSelect.options[projectSelect.selectedIndex].text : '';
+    
+    rows.forEach((row, index) => {
+        let show = true;
+        
+        try {
+            // Hämta celldata säkert
+            const monthCell = row.cells[0];
+            const clientCell = row.cells[1];
+            const projectCell = row.cells[2];  
+            const hoursCell = row.cells[3];
+            
+            if (!monthCell || !clientCell || !projectCell || !hoursCell) {
+                return; // Hoppa över denna rad om celler saknas
+            }
+            
+            const strongElement = monthCell.querySelector('strong');
+            const rowMonth = strongElement ? strongElement.textContent.trim() : monthCell.textContent.trim();
+            const rowClientText = clientCell.textContent.replace(/\s+/g, ' ').trim();
+            const rowProjectText = projectCell.textContent.replace(/\s+/g, ' ').trim();
+            const rowHours = parseFloat(hoursCell.textContent.replace('h', '')) || 0;
+            
+            // Kontrollera årfilter
+            if (year && year !== '') {
+                // Olika format kan förekomma: "November 2025", "2025-11", etc.
+                const hasYear = rowMonth.includes(year);
+                console.log(`Rad ${index}: "${rowMonth}" innehåller "${year}"?`, hasYear);
+                if (!hasYear) {
+                    show = false;
+                }
+            }
+            
+            // Kontrollera klientfilter
+            if (clientId && clientName && !rowClientText.includes(clientName)) {
+                show = false;
+            }
+            
+            // Kontrollera projektfilter  
+            if (projectId && projectName && !rowProjectText.includes(projectName)) {
+                show = false;
+            }
+            
+            // Visa/dölj rad och räkna
+            if (show) {
+                row.style.display = '';
+                visibleRows++;
+                totalHours += rowHours;
+            } else {
+                row.style.display = 'none';
+            }
+            
+        } catch (error) {
+            console.error('Fel vid bearbetning av rad', index, ':', error);
+            row.style.display = ''; // Visa raden vid fel
+        }
+    });
+    
+    // Uppdatera totalsumma
+    const totalElement = document.getElementById('historicTotalHours');
+    if (totalElement) {
+        totalElement.textContent = `Totalt: ${totalHours.toFixed(1)} timmar (${visibleRows} poster)`;
+    }
+}
+
+function resetHistoricFilter() {
+    document.getElementById('historicFilterYear').value = '';
+    document.getElementById('historicFilterClient').value = '';
+    document.getElementById('historicFilterProject').value = '';
+    
+    const rows = document.querySelectorAll('#historicTable tbody tr');
+    let totalHours = 0;
+    
+    rows.forEach(row => {
+        row.style.display = '';
+        const rowHours = parseFloat(row.cells[3].textContent.replace('h', ''));
+        totalHours += rowHours;
+    });
+    
+    document.getElementById('historicTotalHours').textContent = `Totalt: ${totalHours.toFixed(1)} timmar`;
+}
+
+function exportHistoricToCSV() {
+    // Hämta aktuella filter-värden
+    const year = document.getElementById('historicFilterYear').value;
+    const client = document.getElementById('historicFilterClient').value;
+    const project = document.getElementById('historicFilterProject').value;
+    
+    // Bygg URL med filter-parametrar
+    let url = '/export_historic_csv?';
+    const params = [];
+    
+    if (year) params.push(`year=${year}`);
+    if (client) params.push(`client=${client}`);
+    if (project) params.push(`project=${project}`);
+    
+    url += params.join('&');
+    
+    // Öppna CSV-nedladdning i nytt fönster
+    window.open(url, '_blank');
+}
+
+// Setup för automatisk filtrering när sidan laddas
+document.addEventListener('DOMContentLoaded', function() {
+    const yearSelect = document.getElementById('historicFilterYear');
+    const clientSelect = document.getElementById('historicFilterClient');
+    const projectSelect = document.getElementById('historicFilterProject');
+    
+    // Lägg till event listeners för automatisk filtrering
+    if (yearSelect) {
+        yearSelect.addEventListener('change', filterHistoric);
+    }
+    
+    if (clientSelect) {
+        clientSelect.addEventListener('change', filterHistoric);
+    }
+    
+    if (projectSelect) {
+        projectSelect.addEventListener('change', filterHistoric);
+    }
+});
+
+{% if entries %}
+function createClientChart() {
+    const ctx = document.getElementById('clientChart').getContext('2d');
+    
+    // Beräkna timmar per klient
+    const clientData = {};
+    {% for entry in entries %}
+    const client = '{{ entry.client.name }}';
+    if (!clientData[client]) clientData[client] = 0;
+    clientData[client] += {{ entry.hours }};
+    {% endfor %}
+    
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(clientData),
+            datasets: [{
+                data: Object.values(clientData),
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function createWeekChart() {
+    const ctx = document.getElementById('weekChart').getContext('2d');
+    
+    // Beräkna timmar per vecka (förenkla för demo)
+    const weekData = {};
+    {% for entry in entries %}
+    const date = new Date('{{ entry.date }}');
+    const week = getWeekNumber(date);
+    const weekLabel = `Vecka ${week}`;
+    if (!weekData[weekLabel]) weekData[weekLabel] = 0;
+    weekData[weekLabel] += {{ entry.hours }};
+    {% endfor %}
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(weekData),
+            datasets: [{
+                label: 'Timmar',
+                data: Object.values(weekData),
+                backgroundColor: '#36A2EB'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+}
+{% endif %}
+</script>
+{% endblock %}
